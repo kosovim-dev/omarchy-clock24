@@ -50,18 +50,18 @@ Only files under `plugin/` and `src/` are the plugin proper — everything else
 is build scaffolding. There is no separate packaging step; the installed
 directory is the plugin.
 
-## First-time setup
+## Setup & configuration
 
-The QML module (`import Clock24`) is resolved through `QML_IMPORT_PATH`.
-Export it from `~/.config/uwsm/env` so it is present when the shell starts:
+The `Clock24` QML module is resolved through `QML_IMPORT_PATH`. Export it from
+`~/.config/uwsm/env` so it is present when the shell starts:
 
 ```sh
 # ~/.config/uwsm/env
 export QML_IMPORT_PATH=$HOME/.config/omarchy/plugins/kosovim-dev.clock24
 ```
 
-Then add the widget to a bar slot in `~/.config/omarchy/shell.json`, for
-example in `bar.layout.center`:
+Add the widget to a bar slot in `~/.config/omarchy/shell.json` — the plugin id
+and its configuration live in the same entry, e.g. `bar.layout.center`:
 
 ```json
 {
@@ -69,7 +69,7 @@ example in `bar.layout.center`:
     "layout": {
       "center": [
         { "id": "omarchy.clock" },
-        { "id": "kosovim-dev.clock24" },
+        { "id": "kosovim-dev.clock24", "latitude": 51.5072, "longitude": -0.1276, "timeZoneOffset": 1.0 },
         { "id": "kosovim-dev.todo" }
       ]
     }
@@ -77,18 +77,8 @@ example in `bar.layout.center`:
 }
 ```
 
-Saving `shell.json` hot-reloads the bar; the widget appears once the plugin
-directory is in place and `QML_IMPORT_PATH` is set (a re-login picks up the
-new `uwsm/env`).
-
-## Configuration
-
-The widget reads its settings from its own `shell.json` entry. All three are
-optional and fall back to Melbourne, Australia (−37.8136, 144.9631, UTC+10):
-
-```json
-{ "id": "kosovim-dev.clock24", "latitude": 51.5072, "longitude": -0.1276, "timeZoneOffset": 1.0 }
-```
+All three parameters are optional and fall back to Melbourne, Australia
+(−37.8136, 144.9631, UTC+10):
 
 | Key               | Type   | Default     | Meaning                                |
 |-------------------|--------|-------------|----------------------------------------|
@@ -98,6 +88,10 @@ optional and fall back to Melbourne, Australia (−37.8136, 144.9631, UTC+10):
 
 `timeZoneOffset` shifts the solar-noon axis; latitude/longitude drive the
 sunrise/sunset calculations and light-arc geometry.
+
+Saving `shell.json` hot-reloads the bar; the widget appears once the plugin
+directory is in place and `QML_IMPORT_PATH` is set (a re-login picks up the
+new `uwsm/env`).
 
 ## Controlling the popup
 
