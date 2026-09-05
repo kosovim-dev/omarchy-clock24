@@ -103,6 +103,15 @@ void Clock24Item::setTimeZoneOffset(double hours) {
     emit timeZoneOffsetChanged();
 }
 
+bool Clock24Item::opaqueBackground() const { return m_opaqueBackground; }
+
+void Clock24Item::setOpaqueBackground(bool opaque) {
+    if (opaque == m_opaqueBackground) return;
+    m_opaqueBackground = opaque;
+    update();
+    emit opaqueBackgroundChanged();
+}
+
 void Clock24Item::componentComplete() {
     QQuickPaintedItem::componentComplete();
     m_timer->setInterval(m_updateIntervalMs);
@@ -190,7 +199,8 @@ void Clock24Item::paint(QPainter* painter) {
 
     double width = this->width();
     double height = this->height();
-    painter->fillRect(QRectF(0, 0, width, height), QColor(32, 32, 32));
+    if (m_opaqueBackground)
+        painter->fillRect(QRectF(0, 0, width, height), QColor(32, 32, 32));
     double centerX = width / 2.0;
     double centerY = height / 2.0;
     double radiusDial = qMin(width, height) / 2.0 - 20.0;

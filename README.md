@@ -50,6 +50,11 @@ Only files under `plugin/` and `src/` are the plugin proper — everything else
 is build scaffolding. There is no separate packaging step; the installed
 directory is the plugin.
 
+> **Note:** the shell does not watch plugin sources. After editing QML or C++,
+> run `omarchy-restart-shell` (or re-login) for the changes to take effect —
+> `omarchy-shell shell rescanPlugins` only notices newly added plugin
+> directories, not edits to entry QML.
+
 ## Setup & configuration
 
 The `Clock24` QML module is resolved through `QML_IMPORT_PATH`. Export it from
@@ -80,11 +85,12 @@ and its configuration live in the same entry, e.g. `bar.layout.center`:
 All three parameters are optional and fall back to Melbourne, Australia
 (−37.8136, 144.9631, UTC+10):
 
-| Key               | Type   | Default     | Meaning                                |
-|-------------------|--------|-------------|----------------------------------------|
-| `latitude`        | number | `-37.8136`  | Geodetic latitude, decimal degrees     |
-| `longitude`       | number | `144.9631`  | Longitude, decimal degrees             |
-| `timeZoneOffset`  | number | `10.0`      | Offset from UTC in hours (incl. DST)   |
+| Key               | Type    | Default     | Meaning                                |
+|-------------------|---------|-------------|----------------------------------------|
+| `latitude`        | number  | `-37.8136`  | Geodetic latitude, decimal degrees     |
+| `longitude`       | number  | `144.9631`  | Longitude, decimal degrees             |
+| `timeZoneOffset`  | number  | `10.0`      | Offset from UTC in hours (incl. DST)   |
+| `background`      | boolean | `true`      | Opaque square behind the dial; `false` floats the clock transparently |
 
 `timeZoneOffset` shifts the solar-noon axis; latitude/longitude drive the
 sunrise/sunset calculations and light-arc geometry.

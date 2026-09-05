@@ -16,6 +16,7 @@ class Clock24Item : public QQuickPaintedItem {
     Q_PROPERTY(double latitude READ latitude WRITE setLatitude NOTIFY latitudeChanged)
     Q_PROPERTY(double longitude READ longitude WRITE setLongitude NOTIFY longitudeChanged)
     Q_PROPERTY(double timeZoneOffset READ timeZoneOffset WRITE setTimeZoneOffset NOTIFY timeZoneOffsetChanged)
+    Q_PROPERTY(bool opaqueBackground READ opaqueBackground WRITE setOpaqueBackground NOTIFY opaqueBackgroundChanged)
 
 public:
     explicit Clock24Item(QQuickItem* parent = nullptr);
@@ -35,6 +36,9 @@ public:
     double timeZoneOffset() const;
     void setTimeZoneOffset(double hours);
 
+    bool opaqueBackground() const;
+    void setOpaqueBackground(bool opaque);
+
 protected:
     void componentComplete() override;
     void paint(QPainter* painter) override;
@@ -45,6 +49,7 @@ Q_SIGNALS:
     void latitudeChanged();
     void longitudeChanged();
     void timeZoneOffsetChanged();
+    void opaqueBackgroundChanged();
 
 private slots:
     void updateTime();
@@ -76,6 +81,7 @@ private:
 
     int m_updateIntervalMs = 250;
     bool m_running = true;
+    bool m_opaqueBackground = true;
 
     int m_sunrise_minutes;
     int m_sunset_minutes;
