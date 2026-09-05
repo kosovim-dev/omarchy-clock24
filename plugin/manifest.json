@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "kosovim-dev.clock24",
+  "name": "Clock24",
+  "version": "1.0.0",
+  "author": "Murray",
+  "description": "24-hour analog clock in a click-to-toggle popup",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Clock24",
+    "description": "24-hour analog clock in a click-to-toggle popup",
+    "category": "Time",
+    "allowMultiple": false
+  }
+}
