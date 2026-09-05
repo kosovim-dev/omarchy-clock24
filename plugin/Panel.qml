@@ -28,15 +28,15 @@ Panel {
   property real faceTimeZoneOffset: 10.0
 
   // When true the Clock24 item paints an opaque square behind the dial; when
-  // false the dial area is transparent so whatever lies behind the popup
-  // shows through the corners.
-  property bool faceOpaqueBackground: true
+  // false (the default) the dial area is transparent so whatever lies behind
+  // the popup shows through the corners.
+  property bool faceOpaqueBackground: false
 
   function applyLocationSettings() {
     faceLatitude = parseFloat(root.setting("latitude", -37.8136))
     faceLongitude = parseFloat(root.setting("longitude", 144.9631))
     faceTimeZoneOffset = parseFloat(root.setting("timeZoneOffset", 10.0))
-    faceOpaqueBackground = root.setting("background", true) !== false
+    faceOpaqueBackground = root.setting("background", false) !== false
   }
 
   Component.onCompleted: applyLocationSettings()

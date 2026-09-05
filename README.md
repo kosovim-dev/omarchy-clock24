@@ -74,7 +74,7 @@ and its configuration live in the same entry, e.g. `bar.layout.center`:
     "layout": {
       "center": [
         { "id": "omarchy.clock" },
-        { "id": "kosovim-dev.clock24", "latitude": 51.5072, "longitude": -0.1276, "timeZoneOffset": 1.0 },
+        { "id": "kosovim-dev.clock24", "latitude": 51.5072, "longitude": -0.1276, "timeZoneOffset": 1.0, "background": false },
         { "id": "kosovim-dev.todo" }
       ]
     }
@@ -90,7 +90,7 @@ All three parameters are optional and fall back to Melbourne, Australia
 | `latitude`        | number  | `-37.8136`  | Geodetic latitude, decimal degrees     |
 | `longitude`       | number  | `144.9631`  | Longitude, decimal degrees             |
 | `timeZoneOffset`  | number  | `10.0`      | Offset from UTC in hours (incl. DST)   |
-| `background`      | boolean | `true`      | Opaque square behind the dial; `false` floats the clock transparently |
+| `background`      | boolean | `false`     | Opaque square behind the dial; `false` floats the clock transparently |
 
 `timeZoneOffset` shifts the solar-noon axis; latitude/longitude drive the
 sunrise/sunset calculations and light-arc geometry.

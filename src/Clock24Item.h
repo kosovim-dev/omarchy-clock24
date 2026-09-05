@@ -81,7 +81,7 @@ private:
 
     int m_updateIntervalMs = 250;
     bool m_running = true;
-    bool m_opaqueBackground = true;
+    bool m_opaqueBackground = false;
 
     int m_sunrise_minutes;
     int m_sunset_minutes;
