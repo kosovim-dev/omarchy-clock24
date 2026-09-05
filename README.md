@@ -55,6 +55,32 @@ directory is the plugin.
 > `omarchy-shell shell rescanPlugins` only notices newly added plugin
 > directories, not edits to entry QML.
 
+## Upgrading
+
+Updates are manual. `omarchy plugin update` only pulls plugins that are
+installed as a git checkout under `~/.config/omarchy/plugins/<id>`, and this
+plugin ships a *compiled* Qt6 module (`Clock24/libclock24plugin.so`), so a
+straight pull can't deliver it. Get the new sources, rebuild, and reload:
+
+```sh
+git -C ~/omarchy-clock24-plugin pull
+~/omarchy-clock24-plugin/scripts/build.sh
+~/omarchy-clock24-plugin/scripts/reload-shell.sh
+```
+
+`reload-shell.sh` restarts the shell and verifies exactly one instance comes
+back (plain `omarchy-restart-shell` can leave a duplicate bar behind when the
+old instance's runtime socket is stale).
+
+Because builds are required, upgrade and build failures are possible:
+
+- The same build prerequisites as the initial install must be present (Qt6
+  `Quick`/`Qml` dev files, CMake, Ninja, a C++17 compiler). On Arch that is
+  roughly `pacman -S qt6-devel cmake ninja`; elsewhere the equivalent
+  distribution packages.
+- If a rebuild fails, the plugin keeps running the previous installed files —
+  your bar is not left broken, but the upgrade did not apply.
+
 ## Setup & configuration
 
 The `Clock24` QML module is resolved through `QML_IMPORT_PATH`. Export it from
