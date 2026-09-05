@@ -2,8 +2,8 @@
 
 A 24-hour analog clock as an Omarchy **bar widget**. The bar shows a small
 `24` pill; clicking it opens a popup clock face that plots the day as a ring:
-midnight at the top, sunrise and sunset on the left and right, noon at the
-bottom, the current time on a sweep hand.
+midnight at the bottom, sunrise and sunset on the left and right, noon at the
+top, the current time on a sweep hand.
 
 ## Features
 
