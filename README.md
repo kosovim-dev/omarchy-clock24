@@ -93,6 +93,11 @@ Saving `shell.json` hot-reloads the bar; the widget appears once the plugin
 directory is in place and `QML_IMPORT_PATH` is set (a re-login picks up the
 new `uwsm/env`).
 
+> **Note:** after the first install you will need to log out and back in (or
+> reboot) before the plugin will function — `QML_IMPORT_PATH` from `uwsm/env`
+> is read when the compositor session starts, so it only reaches the shell
+> after a fresh session.
+
 ## Controlling the popup
 
 The bar-widget root exposes `open()`, `close()`, and `opened`, so the bar's
