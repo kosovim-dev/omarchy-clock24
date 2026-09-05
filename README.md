@@ -5,6 +5,8 @@ A 24-hour analog clock as an Omarchy **bar widget**. The bar shows a small
 midnight at the bottom, sunrise and sunset on the left and right, noon at the
 top, the current time on a sweep hand.
 
+![Clock24 popup](clock24.png)
+
 ## Features
 
 - Analog 24-hour dial with hour/minutes/secs, sweep-hand and static hands
