@@ -68,7 +68,7 @@ Panel {
     Clock24 {
       id: clock
       anchors.fill: parent
-      updateIntervalMs: 250
+      updateIntervalMs: 120
       latitude: root.faceLatitude
       longitude: root.faceLongitude
       timeZoneOffset: root.faceTimeZoneOffset

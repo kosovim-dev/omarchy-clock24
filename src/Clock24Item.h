@@ -5,6 +5,7 @@
 #include <QTimer>
 #include <QDateTime>
 #include <QBrush>
+#include <QPixmap>
 #include <QtQml/qqmlregistration.h>
 
 class Clock24Item : public QQuickPaintedItem {
@@ -41,6 +42,7 @@ public:
 
 protected:
     void componentComplete() override;
+    void geometryChange(const QRectF& newGeometry, const QRectF& oldGeometry) override;
     void paint(QPainter* painter) override;
 
 Q_SIGNALS:
@@ -55,6 +57,7 @@ private slots:
     void updateTime();
 
 private:
+    void RenderStaticLayer(qreal devicePixelRatio);
     void CalculateSunTimes();
     double calculateHourAngleForElevation(double targetElevation, double declination);
     double GetAngleForMinutes(int minutes) const;
@@ -78,6 +81,8 @@ private:
     QTimer* m_timer;
     QDateTime m_currentDateTime;
     QBrush m_carbonBrush;
+    QPixmap m_staticLayer;
+    bool m_staticDirty = true;
 
     int m_updateIntervalMs = 250;
     bool m_running = true;

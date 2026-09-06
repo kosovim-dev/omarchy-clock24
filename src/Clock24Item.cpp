@@ -1,7 +1,9 @@
 #include "Clock24Item.h"
 #include <QPainter>
 #include <QPixmap>
+#include <QQuickWindow>
 #include <cmath>
+#include <ctime>
 #include "SunRise.h"
 
 Clock24Item::Clock24Item(QQuickItem* parent)
@@ -108,6 +110,7 @@ bool Clock24Item::opaqueBackground() const { return m_opaqueBackground; }
 void Clock24Item::setOpaqueBackground(bool opaque) {
     if (opaque == m_opaqueBackground) return;
     m_opaqueBackground = opaque;
+    m_staticDirty = true;
     update();
     emit opaqueBackgroundChanged();
 }
@@ -136,8 +139,9 @@ void Clock24Item::CalculateSunTimes() {
     sr.calculate(m_latitude, m_longitude, now);
 
     if (sr.hasRise && sr.hasSet) {
-        struct tm local_rise = *localtime(&sr.riseTime);
-        struct tm local_set = *localtime(&sr.setTime);
+        struct tm local_rise, local_set;
+        localtime_r(&sr.riseTime, &local_rise);
+        localtime_r(&sr.setTime, &local_set);
         m_sunrise_minutes = local_rise.tm_hour * 60 + local_rise.tm_min;
         m_sunset_minutes = local_set.tm_hour * 60 + local_set.tm_min;
     } else {
@@ -160,6 +164,7 @@ void Clock24Item::CalculateSunTimes() {
     m_solarNoonAngle = ((solarNoon - 12.0) * 15.0 - 90.0) * M_PI / 180.0;
     m_solarMidnightAngle = m_solarNoonAngle + M_PI;
     m_hasSolarAxis = true;
+    m_staticDirty = true;
 }
 
 double Clock24Item::calculateHourAngleForElevation(double targetElevation, double declination) {
@@ -194,47 +199,72 @@ double Clock24Item::CalculateMoonPhase() const {
     return phase;
 }
 
-void Clock24Item::paint(QPainter* painter) {
-    painter->setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::SmoothPixmapTransform, true);
+void Clock24Item::geometryChange(const QRectF& newGeometry, const QRectF& oldGeometry) {
+    QQuickPaintedItem::geometryChange(newGeometry, oldGeometry);
+    if (newGeometry.size() != oldGeometry.size())
+        m_staticDirty = true;
+}
 
-    double width = this->width();
-    double height = this->height();
+void Clock24Item::RenderStaticLayer(qreal devicePixelRatio) {
+    // Render at native device resolution so scaled/HiDPI displays stay crisp
+    QSize deviceSize(qRound(width() * devicePixelRatio), qRound(height() * devicePixelRatio));
+    m_staticLayer = QPixmap(deviceSize);
+    m_staticLayer.setDevicePixelRatio(devicePixelRatio);
     if (m_opaqueBackground)
-        painter->fillRect(QRectF(0, 0, width, height), QColor(32, 32, 32));
-    double centerX = width / 2.0;
-    double centerY = height / 2.0;
-    double radiusDial = qMin(width, height) / 2.0 - 20.0;
+        m_staticLayer.fill(QColor(32, 32, 32));
+    else
+        m_staticLayer.fill(Qt::transparent);
 
-    QRectF dialRect(centerX - radiusDial, centerY - radiusDial, radiusDial * 2.0, radiusDial * 2.0);
+    QPainter painter(&m_staticLayer);
+    painter.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing, true);
 
-    painter->setPen(Qt::NoPen);
-    painter->setBrush(m_carbonBrush);
-    painter->drawEllipse(dialRect);
+    double cx = width() / 2.0;
+    double cy = height() / 2.0;
+    double radius = qMin(width(), height()) / 2.0 - 20.0;
 
-    DrawSolarTransitions(*painter, centerX, centerY, radiusDial);
-    DrawClockFace(*painter, centerX, centerY, radiusDial);
+    // Apply your seamless carbon fiber texture ONLY inside this circle
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(m_carbonBrush);
+    painter.drawEllipse(QPointF(cx, cy), radius, radius);
 
-    double cx = this->width() / 2.0;
-    double cy = this->height() / 2.0;
-    double radius = qMin(this->width(), this->height()) / 2.0 - 20.0;
+    DrawSolarTransitions(painter, cx, cy, radius);
+    DrawClockFace(painter, cx, cy, radius);
+    DrawSolarAxis(painter, cx, cy, radius);
+    DrawSunriseHand(painter, cx, cy, radius * 0.625);
+    DrawSunsetHand(painter, cx, cy, radius * 0.625);
+    DrawMoonPhase(painter, cx, cy - 100.0);
 
-    DrawSolarTransitions(*painter, cx, cy, radius);
-    DrawClockFace(*painter, cx, cy, radius);
+    painter.end();
+    m_staticDirty = false;
+}
 
-    DrawSolarAxis(*painter, cx, cy, radius);
+void Clock24Item::paint(QPainter* painter) {
+    // Everything that only changes on resize, location, or day-change is
+    // pre-rendered into m_staticLayer; only the hands and readouts are drawn per tick.
+    qreal dpr = window() ? window()->devicePixelRatio() : 1.0;
+    if (m_staticDirty || m_staticLayer.size() != QSizeF(width(), height()) * dpr)
+        RenderStaticLayer(dpr);
 
-    DrawSunriseHand(*painter, cx, cy, radius * 0.625);
-    DrawSunsetHand(*painter, cx, cy, radius * 0.625);
+    painter->setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing, true);
+    painter->drawPixmap(0, 0, m_staticLayer);
+
+    double cx = width() / 2.0;
+    double cy = height() / 2.0;
+    double radius = qMin(width(), height()) / 2.0 - 20.0;
+
     DrawHourHand(*painter, cx, cy, radius * 0.65);
-    DrawMinuteHand(*painter, cx, cy, radius * 0.8);
+    DrawMinuteHand(*painter, cx, cy, radius * 0.72);
     DrawSecondHand(*painter, cx, cy, radius * 0.9);
 
     painter->setBrush(QColor(255, 140, 0));
     painter->setPen(Qt::NoPen);
-    painter->drawEllipse(QPointF(cx, cy), 6.0, 6.0);
+    painter->drawEllipse(QPointF(cx, cy), qMax(4.0, radius * 0.012), qMax(4.0, radius * 0.012));
 
+    // Draw hour labels above the hands so the hands sweep underneath them
+    DrawHourLabels(*painter, cx, cy, radius);
+
+    // Digital time and date panels sit on the top layer with 50% transparency
     DrawDigitalTime(*painter, cx, cy);
-    DrawMoonPhase(*painter, cx, cy - 100.0);
     DrawDate(*painter, cx, cy);
 }
 
@@ -331,16 +361,20 @@ void Clock24Item::DrawClockFace(QPainter& painter, double cx, double cy, double 
 
     double tickOuter = radius - (radius * 0.013);
     double tickInner = radius - (radius * 0.047);
+    // Major markers (every 3 hours) extend 50% further inward
+    double tickInnerMajor = tickInner - (tickOuter - tickInner) * 0.5;
 
     for (int hour = 0; hour < 24; ++hour) {
         double angle = (double(hour) * 15.0 - 90.0) * M_PI / 180.0;
+        bool major = (hour % 3 == 0);
+        double tickInnerHere = major ? tickInnerMajor : tickInner;
         double x1 = cx + tickOuter * cos(angle);
         double y1 = cy + tickOuter * sin(angle);
-        double x2 = cx + tickInner * cos(angle);
-        double y2 = cy + tickInner * sin(angle);
+        double x2 = cx + tickInnerHere * cos(angle);
+        double y2 = cy + tickInnerHere * sin(angle);
 
-        if (hour % 6 == 0) {
-            painter.setPen(QPen(QColor(255, 140, 0), qMax(4.0, radius * 0.015)));
+        if (major) {
+            painter.setPen(QPen(QColor(255, 140, 0), qMax(6.0, radius * 0.0225)));
         } else {
             painter.setPen(QPen(QColor(255, 140, 0), qMax(2.5, radius * 0.010)));
         }
@@ -359,16 +393,18 @@ void Clock24Item::DrawClockFace(QPainter& painter, double cx, double cy, double 
         double y2 = cy + minInner * sin(angle);
         painter.drawLine(QPointF(x1, y1), QPointF(x2, y2));
     }
-    DrawHourLabels(painter, cx, cy, radius);
 }
 
 void Clock24Item::DrawHourLabels(QPainter& painter, double cx, double cy, double radius) {
-    double labelRadius = radius - (radius * 0.092);
+    // Moved inward to clear the extended 3-hour major tick markers
+    double labelRadius = radius - (radius * 0.145);
 
-    int normalFontSize = qMax(9, qRound(radius * 0.031));
-    int boldFontSize = qMax(11, qRound(radius * 0.040));
+    // All hour labels bold; minor hours slightly enlarged
+    int normalFontSize = qMax(11, qRound(radius * 0.038));
+    // Major hour labels 50% larger to match the enlarged 3-hour markers
+    int boldFontSize = qMax(16, qRound(radius * 0.060));
 
-    QFont normalFont("Arial", normalFontSize);
+    QFont normalFont("Arial", normalFontSize, QFont::Bold);
     QFont boldFont("Arial", boldFontSize, QFont::Bold);
 
     for (int hour = 0; hour < 24; ++hour) {
@@ -379,7 +415,7 @@ void Clock24Item::DrawHourLabels(QPainter& painter, double cx, double cy, double
         int displayHour = (hour + 12) % 24;
         QString text = QString::number(displayHour);
 
-        if (displayHour == 0 || displayHour == 6 || displayHour == 12 || displayHour == 18) {
+        if (displayHour % 3 == 0) {
             painter.setFont(boldFont);
             painter.setPen(QColor(255, 140, 0));
         } else {
@@ -443,7 +479,7 @@ void Clock24Item::DrawHourHand(QPainter& painter, double cx, double cy, double l
     double hour = double((time.hour() + 12) % 24) + double(time.minute()) / 60.0;
     double radian = (hour * 15.0 - 90.0) * M_PI / 180.0;
 
-    painter.setPen(QPen(QColor(255, 140, 0), 10, Qt::SolidLine, Qt::RoundCap));
+    painter.setPen(QPen(QColor(255, 140, 0), qMax(4.8, length * 0.036), Qt::SolidLine, Qt::RoundCap));
     painter.drawLine(QPointF(cx, cy), QPointF(cx + length * cos(radian), cy + length * sin(radian)));
 }
 
@@ -451,7 +487,7 @@ void Clock24Item::DrawMinuteHand(QPainter& painter, double cx, double cy, double
     QTime time = m_currentDateTime.time();
     double radian = (((double(time.minute()) * 6.0) + (double(time.second()) * 0.1)) - 90.0) * M_PI / 180.0;
 
-    painter.setPen(QPen(QColor(0, 200, 0), 6, Qt::SolidLine, Qt::RoundCap));
+    painter.setPen(QPen(QColor(0, 200, 0), qMax(2.4, length * 0.018), Qt::SolidLine, Qt::RoundCap));
     painter.drawLine(QPointF(cx, cy), QPointF(cx + length * cos(radian), cy + length * sin(radian)));
 }
 
@@ -459,7 +495,7 @@ void Clock24Item::DrawSecondHand(QPainter& painter, double cx, double cy, double
     QTime time = m_currentDateTime.time();
     double radian = (((double(time.second()) + double(time.msec()) / 1000.0) * 6.0) - 90.0) * M_PI / 180.0;
 
-    painter.setPen(QPen(Qt::red, 2, Qt::SolidLine, Qt::RoundCap));
+    painter.setPen(QPen(Qt::red, qMax(1.0, length * 0.007), Qt::SolidLine, Qt::RoundCap));
     painter.drawLine(QPointF(cx, cy), QPointF(cx + length * cos(radian), cy + length * sin(radian)));
 }
 
@@ -485,7 +521,7 @@ void Clock24Item::DrawDigitalTime(QPainter& painter, double cx, double cy) {
 
     double borderThickness = qMax(1.5, radius * 0.004);
     painter.setPen(QPen(QColor(255, 140, 0), borderThickness));
-    painter.setBrush(QColor(20, 20, 20, 220));
+    painter.setBrush(QColor(20, 20, 20, 128));
 
     QRectF textRect(cx - boxW/2.0, digitalY - boxH/2.0, boxW, boxH);
     painter.drawRoundedRect(textRect, radius * 0.021, radius * 0.021);
@@ -546,7 +582,7 @@ void Clock24Item::DrawDate(QPainter& painter, double cx, double cy) {
 
     double borderThickness = qMax(1.5, radius * 0.004);
     painter.setPen(QPen(QColor(255, 140, 0), borderThickness));
-    painter.setBrush(QColor(20, 20, 20, 200));
+    painter.setBrush(QColor(20, 20, 20, 128));
 
     QRectF textRect(cx - boxW/2.0, dateY - boxH/2.0, boxW, boxH);
     painter.drawRoundedRect(textRect, radius * 0.015, radius * 0.015);
