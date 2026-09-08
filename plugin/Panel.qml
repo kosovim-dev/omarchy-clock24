@@ -22,7 +22,7 @@ Panel {
 
   // Location feeding the solar arcs, sunrise/sunset hands and solar-noon
   // axis. Read from the widget's shell.json entry by default (see
-  // applyLocationSettings); Melbourne, Australia is the fallback.
+  // applyClockSettings); Melbourne, Australia is the fallback.
   property real faceLatitude: -37.8136
   property real faceLongitude: 144.9631
   property real faceTimeZoneOffset: 10.0
@@ -32,15 +32,21 @@ Panel {
   // the popup shows through the corners.
   property bool faceOpaqueBackground: false
 
-  function applyLocationSettings() {
+  // Outline style of the hour and minute hands: "thin" (plain lines),
+  // "arrow" (triangular arrowhead tips) or "monument" (tapered wedge hands).
+  // The second hand is always a thin sweep line.
+  property string faceHandShape: "thin"
+
+  function applyClockSettings() {
     faceLatitude = parseFloat(root.setting("latitude", -37.8136))
     faceLongitude = parseFloat(root.setting("longitude", 144.9631))
     faceTimeZoneOffset = parseFloat(root.setting("timeZoneOffset", 10.0))
     faceOpaqueBackground = root.setting("background", false) !== false
+    faceHandShape = String(root.setting("handShape", "thin")).toLowerCase()
   }
 
-  Component.onCompleted: applyLocationSettings()
-  onSettingsChanged: applyLocationSettings()
+  Component.onCompleted: applyClockSettings()
+  onSettingsChanged: applyClockSettings()
 
   function open() {
     root.controller.show()
@@ -73,6 +79,7 @@ Panel {
       longitude: root.faceLongitude
       timeZoneOffset: root.faceTimeZoneOffset
       opaqueBackground: root.faceOpaqueBackground
+      handShape: root.faceHandShape
     }
   }
 }

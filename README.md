@@ -10,6 +10,8 @@ top, the current time on a sweep hand.
 ## Features
 
 - Analog 24-hour dial with hour/minutes/secs, sweep-hand and static hands
+- Selectable hour/minute hand shapes (`thin`, `arrow`, `monument`) via the
+  `handShape` setting
 - Sunrise / sunset hands and the day's light-arc band, recalculated daily
   for your location
 - Solar noon axis drawn from the actual solar-noon offset for your
@@ -100,7 +102,7 @@ and its configuration live in the same entry, e.g. `bar.layout.center`:
     "layout": {
       "center": [
         { "id": "omarchy.clock" },
-        { "id": "kosovim-dev.clock24", "latitude": 51.5072, "longitude": -0.1276, "timeZoneOffset": 1.0, "background": false },
+        { "id": "kosovim-dev.clock24", "latitude": 51.5072, "longitude": -0.1276, "timeZoneOffset": 1.0, "background": false, "handShape": "monument" },
         { "id": "kosovim-dev.todo" }
       ]
     }
@@ -108,7 +110,7 @@ and its configuration live in the same entry, e.g. `bar.layout.center`:
 }
 ```
 
-All three parameters are optional and fall back to Melbourne, Australia
+All keys are optional; the location falls back to Melbourne, Australia
 (−37.8136, 144.9631, UTC+10):
 
 | Key               | Type    | Default     | Meaning                                |
@@ -117,9 +119,24 @@ All three parameters are optional and fall back to Melbourne, Australia
 | `longitude`       | number  | `144.9631`  | Longitude, decimal degrees             |
 | `timeZoneOffset`  | number  | `10.0`      | Offset from UTC in hours (incl. DST)   |
 | `background`      | boolean | `false`     | Opaque square behind the dial; `false` floats the clock transparently |
+| `handShape`       | string  | `"thin"`    | Hour/minute hand style: `thin` (plain lines), `arrow` (triangular arrowhead tips) or `monument` (tapered wedge hands). The second hand always stays a thin sweep line |
 
 `timeZoneOffset` shifts the solar-noon axis; latitude/longitude drive the
 sunrise/sunset calculations and light-arc geometry.
+
+### Hand shapes
+
+The `handShape` key selects the outline style of the hour and minute hands:
+
+- `"thin"` — plain round-cap lines, the original look (default)
+- `"arrow"` — a slim shaft ending in a triangular arrowhead at the tip
+- `"monument"` — a tapered wedge, wide at the pivot and broad along its
+  length, closing with a short blunt tip that mirrors its counter-tail
+
+The second hand always remains a thin sweep line regardless of `handShape`.
+The digital time, moon-phase and date panels are drawn above the hands at
+50% transparency, so the readouts stay readable whichever shape (or size)
+of hands sweeps beneath them.
 
 Saving `shell.json` hot-reloads the bar; the widget appears once the plugin
 directory is in place and `QML_IMPORT_PATH` is set (a re-login picks up the

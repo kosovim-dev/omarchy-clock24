@@ -104,8 +104,9 @@ void Clock24Item::setTimeZoneOffset(double hours) {
     update();
     emit timeZoneOffsetChanged();
 }
-
-bool Clock24Item::opaqueBackground() const { return m_opaqueBackground; }
+bool Clock24Item::opaqueBackground() const {
+    return m_opaqueBackground;
+}
 
 void Clock24Item::setOpaqueBackground(bool opaque) {
     if (opaque == m_opaqueBackground) return;
@@ -115,6 +116,26 @@ void Clock24Item::setOpaqueBackground(bool opaque) {
     emit opaqueBackgroundChanged();
 }
 
+QString Clock24Item::handShape() const {
+    switch (m_handShape) {
+    case ArrowHands: return "arrow";
+    case MonumentHands: return "monument";
+    case ThinHands:
+    default: return "thin";
+    }
+}
+
+void Clock24Item::setHandShape(const QString& shape) {
+    QString s = shape.trimmed().toLower();
+    HandShapeStyle parsed = ThinHands;
+    if (s == "arrow") parsed = ArrowHands;
+    else if (s == "monument") parsed = MonumentHands;
+
+    if (parsed == m_handShape) return;
+    m_handShape = parsed;
+    update();
+    emit handShapeChanged();
+}
 void Clock24Item::componentComplete() {
     QQuickPaintedItem::componentComplete();
     m_timer->setInterval(m_updateIntervalMs);
@@ -232,7 +253,6 @@ void Clock24Item::RenderStaticLayer(qreal devicePixelRatio) {
     DrawSolarAxis(painter, cx, cy, radius);
     DrawSunriseHand(painter, cx, cy, radius * 0.625);
     DrawSunsetHand(painter, cx, cy, radius * 0.625);
-    DrawMoonPhase(painter, cx, cy - 100.0);
 
     painter.end();
     m_staticDirty = false;
@@ -263,8 +283,10 @@ void Clock24Item::paint(QPainter* painter) {
     // Draw hour labels above the hands so the hands sweep underneath them
     DrawHourLabels(*painter, cx, cy, radius);
 
-    // Digital time and date panels sit on the top layer with 50% transparency
+    // Digital time, moon phase and date panels sit on the top layer, drawn
+    // over the hands so the readouts stay readable as the hands sweep past
     DrawDigitalTime(*painter, cx, cy);
+    DrawMoonPhase(*painter, cx, cy - 100.0);
     DrawDate(*painter, cx, cy);
 }
 
@@ -474,21 +496,77 @@ void Clock24Item::DrawSunsetHand(QPainter& painter, double cx, double cy, double
     painter.drawText(QRectF(x - boxW/2.0, y - boxH * 2.0, boxW, boxH), Qt::AlignCenter, label);
 }
 
+void Clock24Item::DrawHand(QPainter& painter, double cx, double cy, double length,
+                           double angleDeg, const QColor& color, double shaftWidth) {
+    double radian = angleDeg * M_PI / 180.0;
+    double dx = cos(radian), dy = sin(radian);
+    // Unit vector perpendicular to the hand direction
+    double px = -dy, py = dx;
+
+    switch (m_handShape) {
+    case ArrowHands: {
+        // Slim shaft ending in a triangular arrowhead at the tip; the whole
+        // hand is drawn 50% wider than the nominal hand width
+        double width = shaftWidth * 1.5;
+        double headLen = width * 3.6;
+        double headHalfW = width * 2.2;
+        double shaftEnd = length - headLen;
+        painter.setPen(QPen(color, width, Qt::SolidLine, Qt::RoundCap));
+        painter.drawLine(QPointF(cx, cy), QPointF(cx + shaftEnd * dx, cy + shaftEnd * dy));
+
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(color);
+        QPolygonF head;
+        head << QPointF(cx + shaftEnd * dx + px * headHalfW, cy + shaftEnd * dy + py * headHalfW)
+             << QPointF(cx + length * dx, cy + length * dy)
+             << QPointF(cx + shaftEnd * dx - px * headHalfW, cy + shaftEnd * dy - py * headHalfW);
+        painter.drawPolygon(head);
+        break;
+    }
+    case MonumentHands: {
+        // Tapered wedge: widest at the pivot, with a short counter-tail
+        // behind the center. Two shoulder points near the tip hold the hand
+        // wide, then the tip wedge mirrors the centre-end shape at 75%
+        // scale so it closes bluntly instead of thinning to a sharp point
+        double baseHalfW = shaftWidth * 1.6;
+        double tailLen = shaftWidth * 3.0;
+        double tipScale = 0.75;
+        double tipLen = tailLen * tipScale;
+        double tipHalfW = baseHalfW * tipScale;
+        double bodyEnd = length - tipLen;
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(color);
+        QPolygonF wedge;
+        wedge << QPointF(cx + px * baseHalfW, cy + py * baseHalfW)
+              << QPointF(cx + bodyEnd * dx + px * tipHalfW, cy + bodyEnd * dy + py * tipHalfW)
+              << QPointF(cx + length * dx, cy + length * dy)
+              << QPointF(cx + bodyEnd * dx - px * tipHalfW, cy + bodyEnd * dy - py * tipHalfW)
+              << QPointF(cx - px * baseHalfW, cy - py * baseHalfW)
+              << QPointF(cx - tailLen * dx, cy - tailLen * dy);
+        painter.drawPolygon(wedge);
+        break;
+    }
+    case ThinHands:
+    default:
+        painter.setPen(QPen(color, shaftWidth, Qt::SolidLine, Qt::RoundCap));
+        painter.drawLine(QPointF(cx, cy), QPointF(cx + length * dx, cy + length * dy));
+        break;
+    }
+}
+
 void Clock24Item::DrawHourHand(QPainter& painter, double cx, double cy, double length) {
     QTime time = m_currentDateTime.time();
     double hour = double((time.hour() + 12) % 24) + double(time.minute()) / 60.0;
-    double radian = (hour * 15.0 - 90.0) * M_PI / 180.0;
+    double angleDeg = hour * 15.0 - 90.0;
 
-    painter.setPen(QPen(QColor(255, 140, 0), qMax(4.8, length * 0.036), Qt::SolidLine, Qt::RoundCap));
-    painter.drawLine(QPointF(cx, cy), QPointF(cx + length * cos(radian), cy + length * sin(radian)));
+    DrawHand(painter, cx, cy, length, angleDeg, QColor(255, 140, 0), qMax(4.8, length * 0.036));
 }
 
 void Clock24Item::DrawMinuteHand(QPainter& painter, double cx, double cy, double length) {
     QTime time = m_currentDateTime.time();
-    double radian = (((double(time.minute()) * 6.0) + (double(time.second()) * 0.1)) - 90.0) * M_PI / 180.0;
+    double angleDeg = ((double(time.minute()) * 6.0) + (double(time.second()) * 0.1)) - 90.0;
 
-    painter.setPen(QPen(QColor(0, 200, 0), qMax(2.4, length * 0.018), Qt::SolidLine, Qt::RoundCap));
-    painter.drawLine(QPointF(cx, cy), QPointF(cx + length * cos(radian), cy + length * sin(radian)));
+    DrawHand(painter, cx, cy, length, angleDeg, QColor(0, 200, 0), qMax(2.4, length * 0.018));
 }
 
 void Clock24Item::DrawSecondHand(QPainter& painter, double cx, double cy, double length) {
@@ -553,7 +631,7 @@ void Clock24Item::DrawMoonPhase(QPainter& painter, double cx, double cy) {
 
     double borderThickness = qMax(1.5, radius * 0.004);
     painter.setPen(QPen(QColor(255, 140, 0), borderThickness));
-    painter.setBrush(QColor(20, 20, 20, 220));
+    painter.setBrush(QColor(20, 20, 20, 128));
 
     QRectF textRect(cx - boxW/2.0, moonY - boxH/2.0, boxW, boxH);
     painter.drawRoundedRect(textRect, radius * 0.021, radius * 0.021);

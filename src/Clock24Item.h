@@ -18,6 +18,7 @@ class Clock24Item : public QQuickPaintedItem {
     Q_PROPERTY(double longitude READ longitude WRITE setLongitude NOTIFY longitudeChanged)
     Q_PROPERTY(double timeZoneOffset READ timeZoneOffset WRITE setTimeZoneOffset NOTIFY timeZoneOffsetChanged)
     Q_PROPERTY(bool opaqueBackground READ opaqueBackground WRITE setOpaqueBackground NOTIFY opaqueBackgroundChanged)
+    Q_PROPERTY(QString handShape READ handShape WRITE setHandShape NOTIFY handShapeChanged)
 
 public:
     explicit Clock24Item(QQuickItem* parent = nullptr);
@@ -40,6 +41,9 @@ public:
     bool opaqueBackground() const;
     void setOpaqueBackground(bool opaque);
 
+    QString handShape() const;
+    void setHandShape(const QString& shape);
+
 protected:
     void componentComplete() override;
     void geometryChange(const QRectF& newGeometry, const QRectF& oldGeometry) override;
@@ -52,6 +56,7 @@ Q_SIGNALS:
     void longitudeChanged();
     void timeZoneOffsetChanged();
     void opaqueBackgroundChanged();
+    void handShapeChanged();
 
 private slots:
     void updateTime();
@@ -69,6 +74,8 @@ private:
     void DrawHourLabels(QPainter& painter, double cx, double cy, double radius);
     void DrawSunriseHand(QPainter& painter, double cx, double cy, double length);
     void DrawSunsetHand(QPainter& painter, double cx, double cy, double length);
+    void DrawHand(QPainter& painter, double cx, double cy, double length,
+                  double angleDeg, const QColor& color, double shaftWidth);
     void DrawHourHand(QPainter& painter, double cx, double cy, double length);
     void DrawMinuteHand(QPainter& painter, double cx, double cy, double length);
     void DrawSecondHand(QPainter& painter, double cx, double cy, double length);
@@ -106,6 +113,11 @@ private:
     double m_solarNoonAngle = 0.0;
     double m_solarMidnightAngle = 0.0;
     bool m_hasSolarAxis = false;
+
+    // Outline styles for the hour and minute hands ("thin", "arrow",
+    // "monument"). The second hand is always a thin sweep line.
+    enum HandShapeStyle { ThinHands, ArrowHands, MonumentHands };
+    HandShapeStyle m_handShape = ThinHands;
 };
 
 #endif // CLOCK24ITEM_H
