@@ -22,10 +22,12 @@ Panel {
 
   // Location feeding the solar arcs, sunrise/sunset hands and solar-noon
   // axis. Read from the widget's shell.json entry by default (see
-  // applyClockSettings); Melbourne, Australia is the fallback.
+  // applyClockSettings); Melbourne, Australia is the fallback. An unset
+  // timeZoneOffset is NaN = auto: the solar geometry follows the system
+  // clock's UTC offset, DST included.
   property real faceLatitude: -37.8136
   property real faceLongitude: 144.9631
-  property real faceTimeZoneOffset: 10.0
+  property real faceTimeZoneOffset: NaN
 
   // When true the Clock24 item paints an opaque square behind the dial; when
   // false (the default) the dial area is transparent so whatever lies behind
@@ -40,7 +42,7 @@ Panel {
   function applyClockSettings() {
     faceLatitude = parseFloat(root.setting("latitude", -37.8136))
     faceLongitude = parseFloat(root.setting("longitude", 144.9631))
-    faceTimeZoneOffset = parseFloat(root.setting("timeZoneOffset", 10.0))
+    faceTimeZoneOffset = parseFloat(root.setting("timeZoneOffset", NaN))
     faceOpaqueBackground = root.setting("background", false) !== false
     faceHandShape = String(root.setting("handShape", "thin")).toLowerCase()
   }

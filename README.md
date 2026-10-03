@@ -18,7 +18,8 @@ top, the current time on a sweep hand.
   longitude/timezone
 - Location fully configurable from the widget's `shell.json` entry
   (`latitude`, `longitude`, `timeZoneOffset`) so the solar geometry is correct
-  anywhere on Earth
+  anywhere on Earth; the UTC offset follows the system clock (DST included)
+  unless explicitly pinned
 - Self-contained `Clock24/` QML module (C++ core), no runtime scripts
 - Outside-click dismissal and the shell's popout coordinator integration
 - IPC target (`omarchy-shell kosovim-dev.clock24 toggle …`)
@@ -111,18 +112,22 @@ and its configuration live in the same entry, e.g. `bar.layout.center`:
 ```
 
 All keys are optional; the location falls back to Melbourne, Australia
-(−37.8136, 144.9631, UTC+10):
+(−37.8136, 144.9631), and the UTC offset follows the system clock (DST
+included) unless overridden:
 
 | Key               | Type    | Default     | Meaning                                |
 |-------------------|---------|-------------|----------------------------------------|
 | `latitude`        | number  | `-37.8136`  | Geodetic latitude, decimal degrees     |
 | `longitude`       | number  | `144.9631`  | Longitude, decimal degrees             |
-| `timeZoneOffset`  | number  | `10.0`      | Offset from UTC in hours (incl. DST)   |
+| `timeZoneOffset`  | number  | `auto`      | Manual offset from UTC in hours; omit to follow the system clock (DST included) |
 | `background`      | boolean | `false`     | Opaque square behind the dial; `false` floats the clock transparently |
 | `handShape`       | string  | `"thin"`    | Hour/minute hand style: `thin` (plain lines), `arrow` (triangular arrowhead tips) or `monument` (tapered wedge hands). The second hand always stays a thin sweep line |
 
 `timeZoneOffset` shifts the solar-noon axis; latitude/longitude drive the
-sunrise/sunset calculations and light-arc geometry.
+sunrise/sunset calculations and light-arc geometry. Set `timeZoneOffset`
+only to pin the geometry to a timezone other than the system's (e.g.
+tracking a remote location); by default it tracks the system clock through
+DST transitions automatically.
 
 ### Hand shapes
 

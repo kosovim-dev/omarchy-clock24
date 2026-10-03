@@ -98,6 +98,7 @@ void Clock24Item::setLongitude(double longitude) {
 double Clock24Item::timeZoneOffset() const { return m_timeZoneOffset; }
 
 void Clock24Item::setTimeZoneOffset(double hours) {
+    if (qIsNaN(hours) && qIsNaN(m_timeZoneOffset)) return;
     if (qFuzzyCompare(hours, m_timeZoneOffset)) return;
     m_timeZoneOffset = hours;
     CalculateSunTimes();
@@ -146,9 +147,12 @@ void Clock24Item::updateTime() {
     m_currentDateTime = QDateTime::currentDateTime();
 
     static QDate lastDate;
-    if (m_currentDateTime.date() != lastDate) {
+    static int lastOffset = 0;
+    int utcOffset = m_currentDateTime.offsetFromUtc();
+    if (m_currentDateTime.date() != lastDate || utcOffset != lastOffset) {
         CalculateSunTimes();
         lastDate = m_currentDateTime.date();
+        lastOffset = utcOffset;
     }
 
     update();
@@ -175,7 +179,12 @@ void Clock24Item::CalculateSunTimes() {
     double hourAngleSet = calculateHourAngleForElevation(-0.833, declination);
     double hourAngleCivil = calculateHourAngleForElevation(-6.0, declination);
 
-    double solarNoon = 12.0 - (m_longitude - (m_timeZoneOffset * 15.0)) / 15.0;
+    // Auto (NaN) follows the system clock's UTC offset, DST included; an
+    // explicit offset pins the solar geometry to a fixed timezone.
+    double tzOffsetHours = qIsNaN(m_timeZoneOffset)
+        ? m_currentDateTime.offsetFromUtc() / 3600.0
+        : m_timeZoneOffset;
+    double solarNoon = 12.0 - (m_longitude - (tzOffsetHours * 15.0)) / 15.0;
 
     m_sunriseHour = solarNoon - (hourAngleSet * 180.0 / M_PI) / 15.0;
     m_sunsetHour = solarNoon + (hourAngleSet * 180.0 / M_PI) / 15.0;

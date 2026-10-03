@@ -6,6 +6,7 @@
 #include <QDateTime>
 #include <QBrush>
 #include <QPixmap>
+#include <QtMath>
 #include <QtQml/qqmlregistration.h>
 
 class Clock24Item : public QQuickPaintedItem {
@@ -105,10 +106,12 @@ private:
 
     // Location used for the solar arcs, sunrise/sunset hands and solar noon
     // axis. Configurable from QML / shell.json ("latitude", "longitude",
-    // "timeZoneOffset"). Defaults are Melbourne, Australia.
+    // "timeZoneOffset"). Defaults are Melbourne, Australia. A NaN offset
+    // means auto: the solar geometry follows the system clock's UTC offset,
+    // DST included.
     double m_latitude = -37.8136;
     double m_longitude = 144.9631;
-    double m_timeZoneOffset = 10.0;
+    double m_timeZoneOffset = qQNaN();
 
     double m_solarNoonAngle = 0.0;
     double m_solarMidnightAngle = 0.0;
