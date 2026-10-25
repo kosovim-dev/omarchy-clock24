@@ -27,8 +27,14 @@ PanelWindow {
   readonly property string barPos: bar ? bar.position : "top"
   readonly property real screenW: screen ? screen.width : 0
   readonly property real screenH: screen ? screen.height : 0
-  readonly property real barW: anchorWindow ? anchorWindow.width : screenW
-  readonly property real barH: anchorWindow ? anchorWindow.height : 0
+  // Thickness of the painted bar strip on this screen, notch floor included.
+  // The bar window spans its whole screen (only the strip inside it is painted
+  // and takes input), so the window's dimensions say nothing about the bar;
+  // ask the bar facade instead (mirrors KeyboardPanel.barThickness).
+  readonly property real barThickness: !bar ? 0
+    : (typeof bar.barSizeFor === "function" && anchorWindow
+         ? bar.barSizeFor(anchorWindow.screen.name)
+         : bar.barSize)
 
   screen: anchorWindow ? anchorWindow.screen : null
   visible: open || clockHolder.opacity > 0
@@ -59,12 +65,12 @@ PanelWindow {
     var x = 0, y = 0
     if (barPos === "top" || barPos === "bottom") {
       x = screenW / 2 - contentWidth / 2
-      y = barPos === "bottom" ? screenH - barH - contentHeight - gap : barH + gap
+      y = barPos === "bottom" ? screenH - barThickness - contentHeight - gap : barThickness + gap
     } else if (barPos === "left") {
-      x = barW + gap
+      x = barThickness + gap
       y = screenH / 2 - contentHeight / 2
     } else {
-      x = screenW - barW - contentWidth - gap
+      x = screenW - barThickness - contentWidth - gap
       y = screenH / 2 - contentHeight / 2
     }
     x = Math.max(margin, Math.min(x, screenW - contentWidth - margin))
